@@ -1,39 +1,49 @@
+import qs from "qs";
 import { Button } from "@/components/ui/button";
-type HomeData = {
-  data: {
-    attributes: {
-      Title: string;
-      description: string;
-    };
-  };
-};
+import { flattenAttributes } from "@/lib/utils";
+import { HeroSection } from "@/components/custom/heroSection";
 
-async function getHomeData(
-  url: string
-): Promise<{ Title: string; description: string } | undefined> {
+const homePageQuery = qs.stringify({
+  populate: {
+    blocks: {
+      populate: {
+        image: {
+          fields: ["url", "alternativeText"],
+        },
+        link: {
+          populate: true,
+        },
+      },
+    },
+  },
+});
+
+async function getHomeData(path: string): Promise<any> {
   const baseUrl = "http://localhost:1337";
+  const url = new URL(path, baseUrl);
+
+  url.search = homePageQuery;
+
   try {
-    const response = await fetch(`${baseUrl}${url}`);
-    const data: HomeData = await response.json();
+    const response = await fetch(url.href, {
+      method: "GET",
+      next: { revalidate: 10 },
+    });
+    const data = await response.json();
+    const flattenData = flattenAttributes(data);
+    console.log(data);
 
-    if (!data) return undefined;
-
-    return {
-      Title: data.data.attributes.Title,
-      description: data.data.attributes.description,
-    };
+    return flattenData;
   } catch (error) {
     console.error(error);
   }
 }
 
 export default async function Home() {
-  const data = await getHomeData("/api/home-page");
+  const { title, description, blocks } = await getHomeData("/api/home-page");
   return (
-    <div>
-      <h1>{data?.Title}</h1>
-      <p>{data?.description}</p>
-      <Button>Click me</Button>
-    </div>
+    <main>
+      <HeroSection data={blocks[0]} />
+    </main>
   );
 }
