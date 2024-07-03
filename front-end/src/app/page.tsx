@@ -1,49 +1,22 @@
-import qs from "qs";
-import { Button } from "@/components/ui/button";
-import { flattenAttributes } from "@/lib/utils";
+import { getHomePageData } from "@/data/loaders";
 import { HeroSection } from "@/components/custom/heroSection";
+import { FeatureSection } from "@/components/custom/featuresSection";
 
-const homePageQuery = qs.stringify({
-  populate: {
-    blocks: {
-      populate: {
-        image: {
-          fields: ["url", "alternativeText"],
-        },
-        link: {
-          populate: true,
-        },
-      },
-    },
-  },
-});
-
-async function getHomeData(path: string): Promise<any> {
-  const baseUrl = "http://localhost:1337";
-  const url = new URL(path, baseUrl);
-
-  url.search = homePageQuery;
-
-  try {
-    const response = await fetch(url.href, {
-      method: "GET",
-      next: { revalidate: 10 },
-    });
-    const data = await response.json();
-    const flattenData = flattenAttributes(data);
-    console.log(data);
-
-    return flattenData;
-  } catch (error) {
-    console.error(error);
+function blockRenderer(block: any) {
+  switch (block.__component) {
+    case "layout.hero-section":
+      return <HeroSection key={block.id} data={block} />;
+    case "layout.features-section":
+      return <FeatureSection key={block.id} data={block} />;
+    default:
+      return null;
   }
 }
 
 export default async function Home() {
-  const { title, description, blocks } = await getHomeData("/api/home-page");
-  return (
-    <main>
-      <HeroSection data={blocks[0]} />
-    </main>
-  );
+  const { blocks } = await getHomePageData();
+
+  if (!blocks) return <div>No data found</div>;
+
+  return <main>{blocks.map((block: any) => blockRenderer(block))}</main>;
 }
