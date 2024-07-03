@@ -1,5 +1,4 @@
 import qs from "qs";
-import { unstable_noStore as noStore } from "next/cache";
 
 import { flattenAttributes, getStrapiURL } from "@/lib/utils";
 
